@@ -22,7 +22,7 @@ const Signup = () => {
                 }
                 updateUser(userInfo)
                     .then(() => {
-                        saveUser(data.name, data.email);
+                        // saveUser(data.name, data.email);
                      })
                     .catch(err => console.log(err));
             })
@@ -30,6 +30,7 @@ const Signup = () => {
                 console.log(error)
                 // setSignUPError(error.message)
             });
+
     }
 
     return (
