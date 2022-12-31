@@ -1,13 +1,43 @@
 import React, { useContext, useState } from 'react';
 import { useForm } from "react-hook-form";
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthProvider';
+import { GoogleAuthProvider } from 'firebase/auth';
+import useToken from '../../hooks/useToken';
 
 const Login = () => {
-    const { register , formState: { errors }, handleSubmit } = useForm();
+    const { register, formState: { errors }, handleSubmit } = useForm();
     const { signIn } = useContext(AuthContext);
     const [data, setData] = useState("");
     const [loginError, setLoginError] = useState('');
+    const [loginUserEmail, setLoginUserEmail] = useState('');
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [token] = useToken(loginUserEmail);
+    const { providerLogin } = useContext(AuthContext);
+
+    const from = location.state?.from?.pathname || '/';
+
+    if (token) {
+        navigate(from, { replace: true });
+    }
+
+    const googleProvider = new GoogleAuthProvider();
+
+    const handleGoogleSignIn = () => {
+        providerLogin(googleProvider)
+            .then((result) => {
+                const user = result.user;
+                console.log(user);
+                if(user){
+                    saveUser(user.email, user.displayName);
+                }
+            })
+            .catch((error) => console.error(error))
+            .finally(() => {
+                //   setLoading(false);
+            });
+    };
 
     const handleLogin = data => {
         console.log(data);
@@ -16,12 +46,29 @@ const Login = () => {
             .then(result => {
                 const user = result.user;
                 console.log(user);
-                // setLoginUserEmail(data.email);
+                if(user){
+                    saveUser(user.email, user.displayName);
+                }
             })
             .catch(error => {
                 console.log(error.message)
                 setLoginError(error.message);
             });
+    }
+
+    const saveUser = (email, name) =>{
+        const user ={name, email};
+        fetch('https://appointment-menagement-system-server.vercel.app/users', {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify(user)
+        })
+        .then(res => res.json())
+        .then(data =>{
+            setLoginUserEmail(data.email);
+        })
     }
 
     return (
@@ -38,7 +85,7 @@ const Login = () => {
                                 required: "Email Address is required"
                             })}
                             className="input input-bordered w-full max-w-xs" />
-                             {errors.email && <p className='text-red-600'>{errors.email?.message}</p>}
+                        {errors.email && <p className='text-red-600'>{errors.email?.message}</p>}
                         {/* <label className="label">
                         <span className="label-text-alt">Alt label</span>
                     </label> */}
@@ -62,7 +109,7 @@ const Login = () => {
                 </form>
                 <p>New to Doctors Portal <Link className='text-secondary' to="/signup">Create new Account</Link></p>
                 <div className="divider">OR</div>
-                <button className='btn btn-outline w-full'>CONTINUE WITH GOOGLE</button>
+                <button className='btn btn-outline w-full' onClick={handleGoogleSignIn}>CONTINUE WITH GOOGLE</button>
             </div>
         </div>
     );
